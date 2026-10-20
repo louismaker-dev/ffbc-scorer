@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FFBC Page Locker</title>
+<style>
+:root{--bg:#0E1117; --panel:#161A22; --line:#2A303C; --ink:#F3F1EC; --mute:#9AA1AE; --gold:#F5C451; --ok:#34C77B; --bad:#FF7A6B; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0; background:var(--bg); color:var(--ink); font:500 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif}
+.wrap{max-width:560px; margin:0 auto; padding:28px 16px 40px; display:flex; flex-direction:column; gap:14px}
+h1{margin:0; font-size:26px}
+p{margin:0; color:var(--mute)}
+.card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:12px}
+label{display:flex; flex-direction:column; gap:5px; font-size:13px; font-weight:600; color:var(--mute)}
+input[type=text], input[type=password], input[type=number]{background:var(--bg); color:var(--ink); border:1px solid var(--line); border-radius:10px; padding:11px 12px; font-size:16px}
+input[type=file]{color:var(--mute)}
+button{border:0; border-radius:12px; padding:15px; font-size:17px; font-weight:800; background:var(--gold); color:#1A1405; cursor:pointer}
+button:disabled{opacity:.5}
+.msg{font-weight:600}
+.msg.ok{color:var(--ok)} .msg.bad{color:var(--bad)}
+ol{margin:0; padding-left:20px; color:var(--mute)}
+code{background:var(--bg); padding:1px 6px; border-radius:6px; color:var(--ink)}
+</style></head><body>
+<div class="wrap">
+  <h1>FFBC Page Locker</h1>
+  <p>Encrypts a page with a club password, so only members who know it can open it. This all happens on this computer; nothing is uploaded.</p>
+  <div class="card">
+    <label>1. Page to lock (e.g. index.html or FFBC-Umpire-Scorer.html)<input type="file" id="file" accept=".html,text/html"></label>
+    <label>Title on the login screen<input type="text" id="title" value="FFBC Umpire Scorer"></label>
+    <label>2. Club password<input type="password" id="pw" autocomplete="new-password"></label>
+    <label>Type it again<input type="password" id="pw2" autocomplete="new-password"></label>
+    <label>Hint shown on the login screen (optional)<input type="text" id="hint" placeholder="e.g. Ask Louis in the FFBC group"></label>
+    <button id="go" type="button">3. Lock &amp; download index.html</button>
+    <div class="msg" id="msg"></div>
+  </div>
+  <div class="card">
+    <b>Then</b>
+    <ol>
+      <li>Upload the downloaded <code>index.html</code> to your GitHub repo (replace the old one).</li>
+      <li>Share the link and the password with members.</li>
+      <li>To change the password, lock the original page again with a new one and re-upload. Everyone then needs the new password.</li>
+    </ol>
+    <p>Use at least 8 characters; a few words together (like <code>smash-rally-2026</code>) is strong and easy to remember. Keep the unlocked original safe on your PC.</p>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const b64 = u8 => { let s = ""; for (let i=0;i<u8.length;i+=0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i+0x8000)); return btoa(s); };
+const ITER = 250000;
+const TEMPLATE = new TextDecoder().decode(Uint8Array.from(atob("PCFkb2N0eXBlIGh0bWw+CjxodG1sIGxhbmc9ImVuIj48aGVhZD48bWV0YSBjaGFyc2V0PSJ1dGYtOCI+PG1ldGEgbmFtZT0idmlld3BvcnQiIGNvbnRlbnQ9IndpZHRoPWRldmljZS13aWR0aCwgaW5pdGlhbC1zY2FsZT0xLCB2aWV3cG9ydC1maXQ9Y292ZXIiPgo8bWV0YSBuYW1lPSJyb2JvdHMiIGNvbnRlbnQ9Im5vaW5kZXgiPgo8dGl0bGU+JSVUSVRMRSUlPC90aXRsZT4KPHN0eWxlPgo6cm9vdHstLWJnOiMwRTExMTc7IC0tcGFuZWw6IzE2MUEyMjsgLS1saW5lOiMyQTMwM0M7IC0taW5rOiNGM0YxRUM7IC0tbXV0ZTojOUFBMUFFOyAtLWdvbGQ6I0Y1QzQ1MTsgLS1iYWQ6I0ZGN0E2QjsgY29sb3Itc2NoZW1lOmRhcmt9Cip7Ym94LXNpemluZzpib3JkZXItYm94fQpodG1sLGJvZHl7aGVpZ2h0OjEwMCV9CmJvZHl7bWFyZ2luOjA7IGJhY2tncm91bmQ6dmFyKC0tYmcpOyBjb2xvcjp2YXIoLS1pbmspOyBmb250OjUwMCAxNnB4LzEuNDUgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCAiU2Vnb2UgVUkiLCBzYW5zLXNlcmlmOyBkaXNwbGF5OmZsZXg7IGFsaWduLWl0ZW1zOmNlbnRlcjsganVzdGlmeS1jb250ZW50OmNlbnRlcjsgcGFkZGluZzoyNHB4IG1heCgxNnB4LCBlbnYoc2FmZS1hcmVhLWluc2V0LWxlZnQsMHB4KSl9Ci5ib3h7d2lkdGg6MTAwJTsgbWF4LXdpZHRoOjM4MHB4OyBiYWNrZ3JvdW5kOnZhcigtLXBhbmVsKTsgYm9yZGVyOjFweCBzb2xpZCB2YXIoLS1saW5lKTsgYm9yZGVyLXJhZGl1czoxOHB4OyBwYWRkaW5nOjIycHg7IGRpc3BsYXk6ZmxleDsgZmxleC1kaXJlY3Rpb246Y29sdW1uOyBnYXA6MTRweH0KLmxvY2t7d2lkdGg6NTJweDsgaGVpZ2h0OjUycHg7IGJvcmRlci1yYWRpdXM6MTRweDsgYmFja2dyb3VuZDojMkEyNDEwOyBjb2xvcjp2YXIoLS1nb2xkKTsgZGlzcGxheTpncmlkOyBwbGFjZS1pdGVtczpjZW50ZXI7IGZvbnQtc2l6ZToyNnB4fQpoMXttYXJnaW46MDsgZm9udC1zaXplOjIycHg7IGxpbmUtaGVpZ2h0OjEuMn0KcHttYXJnaW46MDsgY29sb3I6dmFyKC0tbXV0ZSk7IGZvbnQtc2l6ZToxNHB4fQppbnB1dFt0eXBlPXBhc3N3b3JkXXt3aWR0aDoxMDAlOyBiYWNrZ3JvdW5kOnZhcigtLWJnKTsgY29sb3I6dmFyKC0taW5rKTsgYm9yZGVyOjFweCBzb2xpZCB2YXIoLS1saW5lKTsgYm9yZGVyLXJhZGl1czoxMnB4OyBwYWRkaW5nOjE0cHg7IGZvbnQtc2l6ZToxOHB4fQppbnB1dFt0eXBlPXBhc3N3b3JkXTpmb2N1c3tvdXRsaW5lOjNweCBzb2xpZCB2YXIoLS1nb2xkKTsgb3V0bGluZS1vZmZzZXQ6MXB4fQpsYWJlbHtkaXNwbGF5OmZsZXg7IGFsaWduLWl0ZW1zOmNlbnRlcjsgZ2FwOjEwcHg7IGZvbnQtd2VpZ2h0OjYwMDsgZm9udC1zaXplOjE0cHh9CmxhYmVsIGlucHV0e3dpZHRoOjIwcHg7IGhlaWdodDoyMHB4OyBhY2NlbnQtY29sb3I6dmFyKC0tZ29sZCl9CmJ1dHRvbntib3JkZXI6MDsgYm9yZGVyLXJhZGl1czoxMnB4OyBwYWRkaW5nOjE1cHg7IGZvbnQtc2l6ZToxN3B4OyBmb250LXdlaWdodDo4MDA7IGJhY2tncm91bmQ6dmFyKC0tZ29sZCk7IGNvbG9yOiMxQTE0MDU7IGN1cnNvcjpwb2ludGVyfQpidXR0b246ZGlzYWJsZWR7b3BhY2l0eTouNTV9Ci5lcnJ7Y29sb3I6dmFyKC0tYmFkKTsgZm9udC13ZWlnaHQ6NjAwOyBmb250LXNpemU6MTRweDsgbWluLWhlaWdodDoyMHB4fQoubm9qc3tjb2xvcjp2YXIoLS1nb2xkKTsgZm9udC13ZWlnaHQ6NjAwfQo8L3N0eWxlPjwvaGVhZD48Ym9keT4KPGZvcm0gY2xhc3M9ImJveCIgaWQ9ImYiIGF1dG9jb21wbGV0ZT0ib2ZmIj4KICA8ZGl2IGNsYXNzPSJsb2NrIiBhcmlhLWhpZGRlbj0idHJ1ZSI+8J+UkjwvZGl2PgogIDxoMT4lJVRJVExFMiUlPC9oMT4KICA8cD5NZW1iZXJzIG9ubHkuIEVudGVyIHRoZSBjbHViIHBhc3N3b3JkLjwvcD4KICA8cCBjbGFzcz0ibm9qcyIgaWQ9Im5vanMiPlRoaXMgdmlld2VyIGNhbid0IG9wZW4gdGhlIHBhZ2UuIE9wZW4gdGhlIGxpbmsgaW4gQ2hyb21lIG9yIFNhZmFyaS48L3A+CiAgPGlucHV0IHR5cGU9InBhc3N3b3JkIiBpZD0icHciIHBsYWNlaG9sZGVyPSJQYXNzd29yZCIgYXJpYS1sYWJlbD0iUGFzc3dvcmQiIGF1dG9jb21wbGV0ZT0iY3VycmVudC1wYXNzd29yZCI+CiAgPGxhYmVsPjxpbnB1dCB0eXBlPSJjaGVja2JveCIgaWQ9InJlbSIgY2hlY2tlZD4gUmVtZW1iZXIgb24gdGhpcyBwaG9uZTwvbGFiZWw+CiAgPGJ1dHRvbiB0eXBlPSJzdWJtaXQiIGlkPSJnbyI+VW5sb2NrPC9idXR0b24+CiAgPGRpdiBjbGFzcz0iZXJyIiBpZD0iZXJyIiByb2xlPSJhbGVydCI+PC9kaXY+CiAgPHAgaWQ9ImhpbnQiPiUlSElOVCUlPC9wPgo8L2Zvcm0+CjxzY3JpcHQgaWQ9ImZmYmMtbG9jayI+CihmdW5jdGlvbigpewogIHZhciBEID0gJSVEQVRBJSUsIEsgPSAiZmZiYy1sb2NrLSIgKyBELnMuc2xpY2UoMCwgMTIpOwogIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJub2pzIikuc3R5bGUuZGlzcGxheSA9ICJub25lIjsKICBpZiAoIWRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJoaW50IikudGV4dENvbnRlbnQpIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJoaW50Iikuc3R5bGUuZGlzcGxheSA9ICJub25lIjsKICBmdW5jdGlvbiB1OChiKXsgdmFyIHMgPSBhdG9iKGIpLCBhID0gbmV3IFVpbnQ4QXJyYXkocy5sZW5ndGgpOyBmb3IgKHZhciBpPTA7aTxzLmxlbmd0aDtpKyspIGFbaV0gPSBzLmNoYXJDb2RlQXQoaSk7IHJldHVybiBhOyB9CiAgZnVuY3Rpb24gYjY0KGEpeyB2YXIgcyA9ICIiOyBmb3IgKHZhciBpPTA7aTxhLmxlbmd0aDtpKyspIHMgKz0gU3RyaW5nLmZyb21DaGFyQ29kZShhW2ldKTsgcmV0dXJuIGJ0b2Eocyk7IH0KICBmdW5jdGlvbiBvcGVuKHJhdyl7CiAgICByZXR1cm4gY3J5cHRvLnN1YnRsZS5pbXBvcnRLZXkoInJhdyIsIHJhdywgIkFFUy1HQ00iLCBmYWxzZSwgWyJkZWNyeXB0Il0pLnRoZW4oZnVuY3Rpb24oayl7CiAgICAgIHJldHVybiBjcnlwdG8uc3VidGxlLmRlY3J5cHQoe25hbWU6IkFFUy1HQ00iLCBpdjp1OChELmkpfSwgaywgdTgoRC5jKSk7IH0pLnRoZW4oZnVuY3Rpb24ocHQpewogICAgICB2YXIgaHRtbCA9IG5ldyBUZXh0RGVjb2RlcigpLmRlY29kZShwdCk7IGRvY3VtZW50Lm9wZW4oKTsgZG9jdW1lbnQud3JpdGUoaHRtbCk7IGRvY3VtZW50LmNsb3NlKCk7IH0pOwogIH0KICBmdW5jdGlvbiBlcnIodCl7IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJlcnIiKS50ZXh0Q29udGVudCA9IHQ7IH0KICBpZiAoIXdpbmRvdy5jcnlwdG8gfHwgIWNyeXB0by5zdWJ0bGUpeyBlcnIoIlRoaXMgYnJvd3NlciBibG9ja3MgdW5sb2NraW5nIGhlcmUuIE9wZW4gdGhlIGh0dHBzIGxpbmsgaW4gQ2hyb21lIG9yIFNhZmFyaS4iKTsgZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoImdvIikuZGlzYWJsZWQgPSB0cnVlOyByZXR1cm47IH0KICB0cnkgeyB2YXIgc2F2ZWQgPSBsb2NhbFN0b3JhZ2UuZ2V0SXRlbShLKTsgaWYgKHNhdmVkKSBvcGVuKHU4KHNhdmVkKSkuY2F0Y2goZnVuY3Rpb24oKXsgdHJ5IHsgbG9jYWxTdG9yYWdlLnJlbW92ZUl0ZW0oSyk7IH0gY2F0Y2goZSl7fSB9KTsgfSBjYXRjaChlKXt9CiAgZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoImYiKS5hZGRFdmVudExpc3RlbmVyKCJzdWJtaXQiLCBmdW5jdGlvbihlKXsKICAgIGUucHJldmVudERlZmF1bHQoKTsgZXJyKCIiKTsKICAgIHZhciBwdyA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJwdyIpLnZhbHVlLCBidG4gPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgiZ28iKTsgaWYgKCFwdyl7IGVycigiVHlwZSB0aGUgcGFzc3dvcmQuIik7IHJldHVybjsgfQogICAgYnRuLmRpc2FibGVkID0gdHJ1ZTsgYnRuLnRleHRDb250ZW50ID0gIlVubG9ja2luZ+KApiI7CiAgICBjcnlwdG8uc3VidGxlLmltcG9ydEtleSgicmF3IiwgbmV3IFRleHRFbmNvZGVyKCkuZW5jb2RlKHB3KSwgIlBCS0RGMiIsIGZhbHNlLCBbImRlcml2ZUJpdHMiXSkudGhlbihmdW5jdGlvbihiYXNlKXsKICAgICAgcmV0dXJuIGNyeXB0by5zdWJ0bGUuZGVyaXZlQml0cyh7bmFtZToiUEJLREYyIiwgc2FsdDp1OChELnMpLCBpdGVyYXRpb25zOkQubiwgaGFzaDoiU0hBLTI1NiJ9LCBiYXNlLCAyNTYpOyB9KS50aGVuKGZ1bmN0aW9uKGJpdHMpewogICAgICB2YXIgcmF3ID0gbmV3IFVpbnQ4QXJyYXkoYml0cyksIGtlZXAgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgicmVtIikuY2hlY2tlZDsKICAgICAgcmV0dXJuIG9wZW4ocmF3KS50aGVuKGZ1bmN0aW9uKCl7IHRyeSB7IGlmIChrZWVwKSBsb2NhbFN0b3JhZ2Uuc2V0SXRlbShLLCBiNjQocmF3KSk7IH0gY2F0Y2goZSl7fSB9LCBmdW5jdGlvbigpeyB0aHJvdyAxOyB9KTsKICAgIH0pLmNhdGNoKGZ1bmN0aW9uKCl7IGJ0bi5kaXNhYmxlZCA9IGZhbHNlOyBidG4udGV4dENvbnRlbnQgPSAiVW5sb2NrIjsgZXJyKCJXcm9uZyBwYXNzd29yZC4gVHJ5IGFnYWluLiIpOyB9KTsKICB9KTsKfSkoKTsKPC9zY3JpcHQ+CjwvYm9keT48L2h0bWw+Cg=="), c=>c.charCodeAt(0)));
+$("go").onclick = async ()=>{
+  const m = $("msg"); m.className = "msg"; m.textContent = "";
+  const f = $("file").files[0], pw = $("pw").value;
+  if (!f){ m.className = "msg bad"; m.textContent = "Choose the page to lock first."; return; }
+  if (pw.length < 6){ m.className = "msg bad"; m.textContent = "Use a password of at least 6 characters."; return; }
+  if (pw !== $("pw2").value){ m.className = "msg bad"; m.textContent = "The two passwords don't match."; return; }
+  if (!crypto || !crypto.subtle){ m.className = "msg bad"; m.textContent = "This browser can't encrypt here. Open this file in Chrome or Edge on your PC."; return; }
+  $("go").disabled = true; m.textContent = "Locking…";
+  try {
+    const html = await f.text();
+    if (html.includes('id="ffbc-lock"')) throw new Error("That page is already locked. Choose the original, unlocked file.");
+    const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey({name:"PBKDF2", salt, iterations:ITER, hash:"SHA-256"}, base, {name:"AES-GCM", length:256}, false, ["encrypt"]);
+    const ct = new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM", iv}, key, new TextEncoder().encode(html)));
+    const esc = s => s.replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+    const out = TEMPLATE.replace("%%TITLE%%", esc($("title").value || "FFBC")).replace("%%TITLE2%%", esc($("title").value || "FFBC"))
+      .replace("%%HINT%%", esc($("hint").value || "")).replace("%%DATA%%", JSON.stringify({s:b64(salt), i:b64(iv), c:b64(ct), n:ITER}));
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([out], {type:"text/html"})); a.download = "index.html"; document.body.appendChild(a); a.click(); a.remove();
+    m.className = "msg ok"; m.textContent = "Locked. index.html downloaded — upload it to GitHub.";
+  } catch(e){ m.className = "msg bad"; m.textContent = e.message || "Something went wrong."; }
+  $("go").disabled = false;
+};
+</script>
+</body></html>
